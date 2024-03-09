@@ -12,6 +12,8 @@ namespace ComReadWirteApp
             InitializeComponent();
             _port1 = new SerialPort();
             _port2 = new SerialPort();
+           
+
         }
 
         public void GetAllPorts()
@@ -45,22 +47,74 @@ namespace ComReadWirteApp
         {
             try
             {
-                if (_port1.IsOpen && _port2.IsOpen)
+                if (_port1.IsOpen )
                 {
-                    MessageBox.Show("This ports are already open ,close it first");
-                    return;
+                    _port1.Close();
                 }
+                else if (_port2.IsOpen)
+                {
+                    _port2.Close();
+                }
+                else if (_port1.IsOpen && _port2.IsOpen)
+                {
 
-                _port1.PortName = cBoxComPort.Text;
-                _port2.PortName = cBoxPort2.Text;
-                _port1.BaudRate = _port2.BaudRate = cBoxBaudRate.Text != string.Empty ? Convert.ToInt32(_port1.BaudRate) : 0;
-                _port1.DataBits = _port2.DataBits = cBoxDataBits.Text != string.Empty ? Convert.ToInt32((int)_port1.DataBits) : 0;
-                _port1.StopBits = _port2.StopBits = (StopBits)Enum.Parse(typeof(StopBits), cBoxStopBits.Text);
-                _port1.Parity = _port2.Parity = (Parity)Enum.Parse(typeof(Parity), cBoxParityBits.Text);
-                _port1.Open();
-                _port2.Open();
-                progressBar1.Value = 100;
-                lblMsg.Text = cBoxComPort.Text + " and " + cBoxPort2.Text + " is opened now";
+                    _port1.Close();
+                    _port2.Close();
+
+                }
+                if (cBoxComPort.Text.Trim()!=string.Empty && cBoxPort2.Text.Trim()==string.Empty)
+                {
+                    _port1.PortName = cBoxComPort.Text;
+                   
+                    _port1.BaudRate  = cBoxBaudRate.Text != string.Empty ? Convert.ToInt32(cBoxBaudRate.Text) : 0;
+                    _port1.DataBits = cBoxDataBits.Text != string.Empty ? Convert.ToInt32(cBoxDataBits.Text) : 0;
+                    _port1.StopBits   = (StopBits)Enum.Parse(typeof(StopBits), cBoxStopBits.Text);
+                    _port1.Parity  = (Parity)Enum.Parse(typeof(Parity), cBoxParityBits.Text);
+                    _port1.RtsEnable = true;
+                    _port1.DtrEnable = true;
+                   // _port2.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
+                    _port1.Open();
+                    //_port1.DiscardOutBuffer();
+                    //_port1.DiscardInBuffer();
+                   
+                   
+                    progressBar1.Value = 100;
+                    lblMsg.Text = cBoxComPort.Text +" is opened now";
+
+                }
+              else if (cBoxPort2.Text.Trim() != string.Empty && cBoxComPort.Text.Trim()==string.Empty)
+                {
+                    _port2.PortName = cBoxPort2.Text;
+                    _port2.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
+                    _port2.BaudRate = cBoxBaudRate.Text != string.Empty ? Convert.ToInt32(cBoxBaudRate.Text) : 0;
+                    _port2.DataBits = cBoxDataBits.Text != string.Empty ? Convert.ToInt32(cBoxDataBits.Text) : 0;
+                    _port2.StopBits = (StopBits)Enum.Parse(typeof(StopBits), cBoxStopBits.Text);
+                    _port2.Parity = (Parity)Enum.Parse(typeof(Parity), cBoxParityBits.Text);
+                    _port2.RtsEnable = true;
+                    _port2.Open();
+                    progressBar1.Value = 100;
+                    lblMsg.Text =  cBoxPort2.Text + " is opened now";
+
+                }
+               else if (cBoxComPort.Text.Trim() != string.Empty && cBoxPort2.Text.Trim() != string.Empty)
+                {
+                    _port1.PortName = cBoxComPort.Text;
+                    _port2.PortName = cBoxPort2.Text;
+                    _port1.BaudRate = _port2.BaudRate = cBoxBaudRate.Text != string.Empty ? Convert.ToInt32(cBoxBaudRate.Text) : 0;
+                    _port1.DataBits = _port2.DataBits = cBoxDataBits.Text != string.Empty ? Convert.ToInt32(cBoxDataBits.Text) : 0;
+                    _port1.StopBits = _port2.StopBits = (StopBits)Enum.Parse(typeof(StopBits), cBoxStopBits.Text);
+                    _port1.Parity = _port2.Parity = (Parity)Enum.Parse(typeof(Parity), cBoxParityBits.Text);
+                    _port1.RtsEnable=_port2.RtsEnable = true;
+                    _port1.Open();
+                    _port2.Open();
+                    progressBar1.Value = 100;
+                    lblMsg.Text = cBoxComPort.Text + " and " + cBoxPort2.Text + " is opened now";
+                }
+                else
+                {
+                    MessageBox.Show("Please choose at least one port to continue", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                }
+              
 
             }
             catch (UnauthorizedAccessException ex)
@@ -119,7 +173,9 @@ namespace ComReadWirteApp
 
                     if (port.IsOpen)
                     {
+                        
                         string data = port.ReadLine();
+
                         //  MessageBox.Show($"Data received from {port.PortName}: {data}");
                         DisplayData($"Data received from {port.PortName}: {data}");
                     }
@@ -154,6 +210,18 @@ namespace ComReadWirteApp
                 tBoxRead.AppendText(data + Environment.NewLine);
             }
         }
+        private  void DataReceivedHandler(
+                       object sender,
+                       SerialDataReceivedEventArgs e)
+        {
+            byte[] data = new byte[_port2.BytesToRead];
+            _port2.Read(data, 0, data.Length);
+            MessageBox.Show(System.Text.Encoding.UTF8.GetString(data));
+           // SerialPort sp = (SerialPort)sender;
+            string indata = _port2.ReadExisting();
+            // Console.WriteLine("Data Received:");
+            DisplayData(indata);
+        }
 
 
         // <summary>
@@ -183,6 +251,8 @@ namespace ComReadWirteApp
 
         private async void btnSendData_Click(object sender, EventArgs e)
         {
+            //WriteData(_port1, tBoxDataOut.Text);
+            //ReadData(_port1);
             await ReadWriteDataInParallel();
 
         }
@@ -194,12 +264,40 @@ namespace ComReadWirteApp
 
         public async Task ReadWriteDataInParallel()
         {
-            await Task.WhenAll(
-                 Task.Run(() => ReadData(_port1)),
+            if (_port1.IsOpen && !_port2.IsOpen)
+            {
+              
+                await Task.WhenAll(
+               // Task.Run(() => ReadData(_port1)),
+               Task.Run(() =>WriteData(_port1, tBoxDataOut.Text))
+              
+
+
+           );
+            }
+            else if (_port2.IsOpen && !_port1.IsOpen)
+            {
+                await Task.WhenAll(
+               
                 Task.Run(() => ReadData(_port2)),
-                Task.Run(() => WriteData(_port1, tBoxDataOut.Text)),
-                Task.Run(() => WriteData(_port2, tBoxDataOut.Text))
+                Task.Run(() => WriteData(_port1, tBoxDataOut.Text))
+               
             );
+            }
+            else if (_port1.IsOpen && _port2.IsOpen)
+            {
+                await Task.WhenAll(
+                                 Task.Run(() => ReadData(_port1)),
+                                Task.Run(() => ReadData(_port2)),
+                                Task.Run(() => WriteData(_port1, tBoxDataOut.Text)),
+                                Task.Run(() => WriteData(_port2, tBoxDataOut.Text))
+                            );
+            }
+            else
+            {
+                MessageBox.Show("Please open at least one port", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            
         }
         
     }
